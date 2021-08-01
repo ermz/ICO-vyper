@@ -54,13 +54,23 @@ def __init__(_ERC20: address, _endTime: uint256):
 
 @external
 @view
+def viewAvailableTokens() -> uint256:
+    return self.availableTokens
+
+@external
+@view
+def viewIcoInvestors(addr: address) -> bool:
+    return self.icoInvestors[addr]
+
+@external
+@view
 def currentPurchase() -> uint256:
     return self.purchaseAmount[self.addressToId[msg.sender]]
 
 @external
 def icoStart(_duration: uint256, _tokenPrice: uint256, _availableTokens: uint256, _minimumPurchase: uint256, _maxPurchase: uint256) -> bool:
     assert msg.sender == self.admin, "Only the admin may start the ico"
-    assert _duration > 0, "Duration should be longer than that"
+    assert _duration > 0, "Duration should be longer than 0"
     assert self.icoActive == False, "ICO has already started"
     assert _availableTokens > 0, "There has to be atleast some tokens for sale"
     assert _availableTokens < erc20Receiver(self.erc20).totalSupply(), "Avaiable tokens can't be higher than total supply"
@@ -71,6 +81,7 @@ def icoStart(_duration: uint256, _tokenPrice: uint256, _availableTokens: uint256
     self.availableTokens = _availableTokens
     self.minimumPurchase = _minimumPurchase
     self.maxPurchase = _maxPurchase
+    self.icoActive = True
     return True
 
 @external
@@ -82,13 +93,14 @@ def whitelist(investor: address) -> bool:
 @external
 @payable
 def buyToken(amount: uint256) -> bool:
-    assert msg.value >= amount, "Insufficient funds being sent"
+    # Have to look this up later, there has to be a better way to transform ether to wei or vice versa
+    assert msg.value >= (amount * 1_000_000_000_000_000_000), "Insufficient funds being sent"
     assert self.icoInvestors[msg.sender] == True, "You must be whitelisted by admin first"
     assert self.minimumPurchase <= amount, "You must buy atleast the minimum purchase amount"
     assert self.maxPurchase >= amount, "You can't buy more than the maximum purchase amount"
     assert self.endTime > block.timestamp, "The time has run up, you can't purchase anymore tokens at this time"
     assert self.icoActive == True, "The ICO is inactive"
-    assert self.purchaseAmount[self.addressToId[msg.sender]] + amount <= self.maxPurchase, "You would exceed max purchase with this transaction"
+    # assert (self.purchaseAmount[self.addressToId[msg.sender]] + amount) <= self.maxPurchase, "You would exceed max purchase with this transaction"
     
     # If statement checks if this particular account has bought tokens before
     # If they have it will just increase purchase amount w/out incrementing purchaseId

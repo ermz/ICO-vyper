@@ -20,5 +20,7 @@ def test_transfer_from(_erc20, alice, bob, charles):
     with brownie.reverts():
         _erc20.transferFrom(bob, accounts[3], 35, {"from": charles})
     _erc20.approve(charles, 35, {"from": bob})
+    assert _erc20.allowance(bob, {"from": charles}) == 35
     _erc20.transferFrom(bob, accounts[3], 35, {"from": charles})
+    assert _erc20.allowance(bob, {"from": charles}) == 0
     assert _erc20.balanceOf(accounts[3]) == 35

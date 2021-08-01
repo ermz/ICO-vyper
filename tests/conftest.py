@@ -1,15 +1,15 @@
 import pytest
 from brownie import accounts, Contract, erc20, ico
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def alice(accounts):
     return accounts[0]
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def bob(accounts):
     return accounts[1]
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def charles(accounts):
     return accounts[2]
 

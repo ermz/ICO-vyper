@@ -54,6 +54,11 @@ def __init__(_ERC20: address, _endTime: uint256):
 
 @external
 @view
+def viewBalanceOf(addr: address) -> uint256:
+    return erc20Receiver(self.erc20).balanceOf(addr)
+
+@external
+@view
 def viewAvailableTokens() -> uint256:
     return self.availableTokens
 
@@ -100,21 +105,27 @@ def buyToken(amount: uint256) -> bool:
     assert self.maxPurchase >= amount, "You can't buy more than the maximum purchase amount"
     assert self.endTime > block.timestamp, "The time has run up, you can't purchase anymore tokens at this time"
     assert self.icoActive == True, "The ICO is inactive"
-    # assert (self.purchaseAmount[self.addressToId[msg.sender]] + amount) <= self.maxPurchase, "You would exceed max purchase with this transaction"
-    
-    # If statement checks if this particular account has bought tokens before
-    # If they have it will just increase purchase amount w/out incrementing purchaseId
-    if self.purchaseAmount[self.addressToId[msg.sender]] > 0:
-        self.purchaseAmount[self.addressToId[msg.sender]] += amount
-        log TokenPurchase(msg.sender, amount, self.addressToId[msg.sender])
+
+    if self.addressToId[msg.sender] == 0:
+        self.purchaseId += 1
+        self.purchaseInvestor[self.purchaseId] = msg.sender
+        self.purchaseAmount[self.purchaseId] += amount
+        self.addressToId[msg.sender] = self.purchaseId
+        log TokenPurchase(msg.sender, amount, self.purchaseId)
         return True
 
-    self.purchaseInvestor[self.purchaseId] = msg.sender
-    self.purchaseAmount[self.purchaseId] += amount
-    log TokenPurchase(msg.sender, amount, self.purchaseId)
-    self.purchaseId += 1
+    assert (self.purchaseAmount[self.addressToId[msg.sender]] + amount) <= self.maxPurchase, "You would exceed max purchase with this transaction"
+    self.purchaseAmount[self.addressToId[msg.sender]] += amount
+    log TokenPurchase(msg.sender, amount, self.addressToId[msg.sender])
     return True
 
+@external
+def endIco() -> bool:
+    assert msg.sender == self.admin, "Only admin may distribte tokens"
+    assert self.icoActive == True, "ICO is inactive already"
+    assert self.endTime < block.timestamp or self.availableTokens == self.balance, "Either time for the ICO has elapsed or all tokens have been sold"
+    self.icoActive = False
+    return True
 
 @external
 def transferTokens() -> bool:
@@ -124,7 +135,7 @@ def transferTokens() -> bool:
     assert self.tokensTransferred == False, "Tokens have been transferred already"
     # The if statement should break/stop the for loop once it finds an id
     # that holds no value, so that should be the end transferring tokens
-    for i in range(0, 1_000_000):
+    for i in range(1, 1_000_000):
         if self.purchaseAmount[i] == 0:
             break
         else:
